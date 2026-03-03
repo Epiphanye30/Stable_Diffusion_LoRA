@@ -1,0 +1,19 @@
+# Core
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Diffusion stack
+diffusers>=0.27.0
+transformers>=4.38.0
+accelerate>=0.27.0
+safetensors>=0.4.2
+peft>=0.10.0
+
+# Data / utils
+datasets>=2.17.0
+pillow>=10.2.0
+tqdm>=4.66.0
+numpy>=1.24.0
+
+# Optional logging
+tensorboard>=2.15.0

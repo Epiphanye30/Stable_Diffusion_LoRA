@@ -1,0 +1,17 @@
+__pycache__/
+*.vscode
+*.pyc
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+.env
+venv/
+.env/
+.ipynb_checkpoints/
+lora_out/
+Anime Faces
+dataset
+deprecated
+wikiart
+dataset.zip
