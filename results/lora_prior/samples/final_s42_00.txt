@@ -1,0 +1,4 @@
+prompt: portrait of a young person, natural lighting
+negative_prompt: 
+method: lora_prior
+seed: 42

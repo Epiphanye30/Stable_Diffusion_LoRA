@@ -1,0 +1,4 @@
+prompt: anime style face illustration, detailed eyes
+negative_prompt: 
+method: dora
+seed: 42
