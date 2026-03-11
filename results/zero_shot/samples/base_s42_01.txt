@@ -1,4 +1,0 @@
-prompt: portrait of a young person, natural lighting
-negative_prompt: 
-method: zero_shot
-seed: 42

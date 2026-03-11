@@ -16,3 +16,10 @@ wikiart
 dataset.zip
 infer_out/
 infer_base_out/
+datasets/Anime_Faces
+datasets/flower_data
+datasets/flower_birdofparadise
+datasets/stanford_car
+output
+results_old
+results

@@ -1,4 +1,0 @@
-prompt: anime style face illustration, detailed eyes
-negative_prompt: 
-method: zero_shot
-seed: 42

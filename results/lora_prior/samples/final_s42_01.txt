@@ -1,4 +1,0 @@
-prompt: anime style face illustration, detailed eyes
-negative_prompt: 
-method: lora_prior
-seed: 42
