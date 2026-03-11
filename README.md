@@ -15,7 +15,7 @@ The original baseline scripts are kept unchanged:
 ## Dataset
 
 Training data default path:
-- `dataset/Anime_Faces/`
+- `datasets/5_shots_Anime_Faces/`
 
 Expected format is unchanged from baseline (paired image + caption text file).
 
@@ -50,6 +50,24 @@ Notes:
 - `--output_dir` is optional. If omitted, outputs are written to `output/<method>/`.
 - Checkpoints are saved as `checkpoint-*` and final adapter is saved to `final/`.
 - After training, a quick smoke generation (2 prompts x 2 seeds) is written to `output/<method>/quickcheck/`.
+
+Batch training for all four datasets and all three methods:
+
+```bash
+bash train_all_datasets.sh
+```
+
+You can pass extra training arguments through to every run. Example:
+
+```bash
+bash train_all_datasets.sh --train_steps 200 --save_every 100
+```
+
+Batch outputs are stored under:
+- `output/<dataset_name>/<method>/`
+
+The script deletes the existing target output directory before each run, so the new output replaces the old output for that dataset/method.
+If you want to force a specific prior prompt file for all `lora_prior` runs, you can set `PRIOR_PROMPTS_PATH=/your/path.txt` before the command.
 
 ## Inference
 

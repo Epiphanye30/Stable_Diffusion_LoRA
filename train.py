@@ -108,7 +108,7 @@ def parse_args():
 
     p.add_argument("--method", type=str, default="lora", choices=["lora", "lora_prior", "dora"])
 
-    p.add_argument("--data_dir", type=str, default="dataset/Anime_Faces")
+    p.add_argument("--data_dir", type=str, default="datasets/5_shots_Anime_Faces")
     p.add_argument("--output_dir", type=str, default=None)
     p.add_argument("--save_every", type=int, default=300)
 
@@ -217,16 +217,38 @@ def save_training_args(path: str, args):
             f.write(f"{k}: {v}\n")
 
 
+def select_quickcheck_prompts(data_dir: str) -> List[str]:
+    dataset_name = os.path.basename(os.path.normpath(data_dir)).lower()
+
+    if "anime" in dataset_name:
+        return [
+            "anime style face illustration, detailed eyes",
+            "close-up anime portrait, clean line art, soft shading",
+        ]
+    if "flower" in dataset_name or "birdofparadise" in dataset_name:
+        return [
+            "a close-up photo of a bird of paradise flower, natural lighting",
+            "botanical photograph of a bird of paradise flower, detailed petals, clean background",
+        ]
+    if "car" in dataset_name:
+        return [
+            "a photo of a sports car, studio lighting, front three-quarter view",
+            "a photo of a car parked on the street, detailed body lines, realistic lighting",
+        ]
+
+    return [
+        "a high-quality photo of the subject, natural lighting",
+        "a detailed image of the subject, clean composition",
+    ]
+
+
 def run_quickcheck(
     args,
     adapter_dir: str,
     quickcheck_dir: str,
     accelerator: Accelerator,
 ):
-    prompts = [
-        "portrait of a young person, natural lighting",
-        "anime style face illustration, detailed eyes",
-    ]
+    prompts = select_quickcheck_prompts(args.data_dir)
     seeds = [args.seed, args.seed + 1]
 
     os.makedirs(quickcheck_dir, exist_ok=True)
