@@ -1,105 +1,399 @@
-# Stable Diffusion LoRA / LoRA+Prior / DoRA
+# Few-shot Domain Adaptation for Stable Diffusion v1.5
 
-This repo now has a unified training entrypoint and a unified inference entrypoint built by minimally extending the existing vanilla LoRA code.
+This repository studies parameter-efficient few-shot adaptation of Stable Diffusion v1.5 with three methods:
 
-## Updated entrypoints
+- `lora`
+- `lora_prior`
+- `dora`
 
-- `train.py`: unified training for `lora`, `lora_prior`, `dora`
-- `inference.py`: unified inference for `zero_shot`, `lora`, `lora_prior`, `dora`
+The repo includes:
 
-The original baseline scripts are kept unchanged:
-- `train_lora.py`
-- `infer_base.py`
-- `infer_lora.py`
+- training: `train.py`
+- inference: `inference.py`
+- evaluation: `evaluate.py`
+- plotting: `visualize.py`
+- batch runs across datasets: `train_all_datasets.sh`
 
-## Dataset
+The main goal is to adapt a pretrained text-to-image model to a new visual domain from only 1 to 5 images, then compare fidelity, diversity, and prompt controllability across methods.
 
-Training data default path:
-- `datasets/5_shots_Anime_Faces/`
+## What Is In This Repo
 
-Expected format is unchanged from baseline (paired image + caption text file).
+The project is organized around a fixed experiment pipeline:
 
-## Prior prompts (LoRA+Prior)
+1. prepare a few-shot dataset in `datasets/<experiment_name>/`
+2. train adapters with `train.py`
+3. generate samples with `inference.py` or through `evaluate.py`
+4. compute evaluation CSVs with `evaluate.py`
+5. make figures with `visualize.py`
 
-Default prompt file:
-- `dataset/prior_prompts.txt`
+Important folders:
 
-One prompt per line. If the file is missing or empty, `train.py` falls back to an internal generic prompt list.
+- `datasets/`: few-shot training sets, full evaluation reference sets, prior prompts
+- `output/`: training outputs and final adapters
+- `results/`: generated samples, evaluation CSVs, and figures
 
-## Training
+## Methods
 
-Run vanilla LoRA:
+- `lora`: standard Low-Rank Adaptation on Stable Diffusion UNet attention layers
+- `lora_prior`: LoRA plus prior-preservation prompts during training
+- `dora`: DoRA, a weight-decomposed variant of LoRA
+
+The code freezes the base model backbone and trains only adapter parameters.
+
+## Repository Layout
+
+```text
+.
++-- train.py
++-- inference.py
++-- evaluate.py
++-- visualize.py
++-- train_all_datasets.sh
++-- requirements.txt
++-- datasets/
+|   +-- 1_shots_Anime_Faces/
+|   +-- 5_shots_Anime_Faces/
+|   +-- 5_flower_birdofparadise/
+|   +-- 5_stanford_car/
+|   +-- Anime_Faces/
+|   +-- flower_birdofparadise/
+|   +-- stanford_car/
+|   `-- prior_prompts.txt
++-- output/
+`-- results/
+```
+
+## Environment Setup
+
+Recommended: Python 3.10 or 3.11 with a CUDA-enabled PyTorch install.
+
+Create an environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+On Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+On bash:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Model Access
+
+The default base model is:
+
+```text
+runwayml/stable-diffusion-v1-5
+```
+
+You may need Hugging Face access configured locally before running training or inference. If model download fails, log in with:
+
+```bash
+huggingface-cli login
+```
+
+## Dataset Format
+
+Each few-shot training folder should contain paired image-caption files:
+
+```text
+datasets/5_shots_Anime_Faces/
++-- 1.png
++-- 1.txt
++-- 2.png
++-- 2.txt
+`-- ...
+```
+
+Each `.txt` file should contain one caption describing the matching image.
+
+Examples from the current repo:
+
+- anime: `a close-up portrait of a pink-haired anime girl with large eyes, soft shading, clean line art`
+- flower: `a photo of a bird of paradise flower`
+- car: `a photo of a car`
+
+For evaluation, the repo also expects full-domain reference folders:
+
+- `datasets/Anime_Faces`
+- `datasets/flower_birdofparadise`
+- `datasets/stanford_car`
+
+These are used by `evaluate.py` when computing CLIP similarity and FID.
+
+## Prior Prompts for `lora_prior`
+
+`lora_prior` uses a plain text file with one generic prompt per line:
+
+- default path used by batch training: `datasets/prior_prompts.txt`
+- default path in `train.py`: `dataset/prior_prompts.txt`
+
+The batch script already resolves this mismatch and prefers `datasets/prior_prompts.txt` if it exists.
+
+Current examples:
+
+- `a portrait photo of a person`
+- `a landscape photo at sunset`
+- `a close-up photo of a cat`
+- `a photo of a city street`
+- `a product photo on white background`
+
+If no prompt file is found, `train.py` falls back to an internal default prompt list.
+
+## Quick Start
+
+Train a single LoRA adapter on the default dataset:
 
 ```bash
 python train.py --method lora
 ```
 
-Run LoRA + prior regularization:
+Train LoRA with prior preservation:
 
 ```bash
-python train.py --method lora_prior
+python train.py --method lora_prior --data_dir datasets/5_shots_Anime_Faces
 ```
 
-Run DoRA:
+Train DoRA:
 
 ```bash
-python train.py --method dora
+python train.py --method dora --data_dir datasets/5_stanford_car
 ```
 
-Notes:
-- `--output_dir` is optional. If omitted, outputs are written to `output/<method>/`.
-- Checkpoints are saved as `checkpoint-*` and final adapter is saved to `final/`.
-- After training, a quick smoke generation (2 prompts x 2 seeds) is written to `output/<method>/quickcheck/`.
+Run zero-shot inference:
 
-Batch training for all four datasets and all three methods:
+```bash
+python inference.py --method zero_shot --prompt "a photo of a car"
+```
+
+Run inference with a trained LoRA adapter:
+
+```bash
+python inference.py --method lora --adapter_path output/5_stanford_car/lora/final --prompt "a photo of a car"
+```
+
+## Training
+
+### Single Run
+
+Core arguments for `train.py`:
+
+- `--method`: `lora`, `lora_prior`, or `dora`
+- `--data_dir`: few-shot training folder
+- `--output_dir`: where checkpoints and final adapter are written
+- `--train_steps`: default `1200`
+- `--save_every`: checkpoint frequency
+- `--learning_rate`: default `1e-4`
+- `--lora_rank`: default `8`
+- `--mixed_precision`: `no`, `fp16`, `bf16`
+
+Example:
+
+```bash
+python train.py ^
+  --method lora ^
+  --data_dir datasets/5_shots_Anime_Faces ^
+  --output_dir output/5_shots_Anime_Faces/lora ^
+  --train_steps 1200 ^
+  --save_every 300
+```
+
+On bash use `\` instead of `^` for line continuation.
+
+Training outputs:
+
+- `output/<experiment>/<method>/checkpoint-*`
+- `output/<experiment>/<method>/final/`
+- `output/<experiment>/<method>/quickcheck/`
+- `output/<experiment>/<method>/logs/`
+
+### Batch Training
+
+`train_all_datasets.sh` runs all datasets and all three methods:
 
 ```bash
 bash train_all_datasets.sh
 ```
 
-You can pass extra training arguments through to every run. Example:
+It currently runs:
+
+- `datasets/1_shots_Anime_Faces`
+- `datasets/5_shots_Anime_Faces`
+- `datasets/5_flower_birdofparadise`
+- `datasets/5_stanford_car`
+
+Pass extra training args through to every run:
 
 ```bash
 bash train_all_datasets.sh --train_steps 200 --save_every 100
 ```
 
-Batch outputs are stored under:
-- `output/<dataset_name>/<method>/`
+If you are on Windows, run this script through Git Bash or WSL. It is a bash script, not a PowerShell script.
 
-The script deletes the existing target output directory before each run, so the new output replaces the old output for that dataset/method.
-If you want to force a specific prior prompt file for all `lora_prior` runs, you can set `PRIOR_PROMPTS_PATH=/your/path.txt` before the command.
+Important behavior:
+
+- the script deletes the target output directory before each run
+- outputs are written to `output/<dataset_name>/<method>/`
 
 ## Inference
 
-Zero-shot inference:
+`inference.py` supports:
+
+- `zero_shot`
+- `lora`
+- `lora_prior`
+- `dora`
+
+Examples:
+
+Zero-shot:
 
 ```bash
-python inference.py --method zero_shot --prompt "your prompt"
+python inference.py --method zero_shot --prompt "anime girl face portrait"
 ```
 
-LoRA inference (single adapter folder or parent checkpoint folder):
+LoRA:
 
 ```bash
-python inference.py --method lora --adapter_path output/lora/final --prompt "your prompt"
+python inference.py --method lora --adapter_path output/5_shots_Anime_Faces/lora/final --prompt "anime girl face portrait"
 ```
 
-LoRA+Prior inference:
+LoRA + Prior:
 
 ```bash
-python inference.py --method lora_prior --adapter_path output/lora_prior/final --prompt "your prompt"
+python inference.py --method lora_prior --adapter_path output/5_shots_Anime_Faces/lora_prior/final --prompt "anime girl face portrait"
 ```
 
-DoRA inference:
+DoRA:
 
 ```bash
-python inference.py --method dora --adapter_path output/dora/final --prompt "your prompt"
+python inference.py --method dora --adapter_path output/5_stanford_car/dora/final --prompt "a photo of a car"
 ```
 
-Notes:
-- `--adapter_path` is required for `lora_prior` and `dora`.
-- Inference results are saved under `results/<method>/samples/` by default.
-- If `--adapter_path` points to a parent folder with `checkpoint-*`, you can sample each checkpoint (and optionally `final/` via `--include_final`).
+Useful flags:
 
-## DoRA compatibility
+- `--negative_prompt`
+- `--num_images`
+- `--seed`
+- `--height`
+- `--width`
+- `--guidance_scale`
+- `--num_inference_steps`
+- `--device cuda|cpu`
+- `--dtype fp16|bf16|fp32`
 
-If your installed `peft` does not support `LoraConfig(..., use_dora=True)`, `train.py` raises a clear error asking to upgrade `peft`.
+Inference outputs are saved to:
+
+```text
+results/<method>/samples/
+```
+
+If `--adapter_path` points to a directory containing `checkpoint-*`, use `--include_final` to also sample the final adapter.
+
+## Evaluation
+
+`evaluate.py` is the end-to-end evaluation script used for the project report. It:
+
+- discovers experiments under `output/`
+- loads the matching few-shot and reference datasets from `datasets/`
+- generates samples for each method
+- computes prompt controllability, LPIPS diversity, CLIP image similarity, and FID
+- saves merged CSV summaries
+
+Run:
+
+```bash
+python evaluate.py
+```
+
+Main outputs:
+
+- `results/all_evaluation_results.csv`
+- `results/all_evaluation_summary.csv`
+- `results/plot_ready_summary.csv`
+- `results/<experiment_name>/...`
+
+## Visualization
+
+After evaluation, create summary figures:
+
+```bash
+python visualize.py
+```
+
+Figures are written to:
+
+```text
+results/figures/
+```
+
+## Typical End-to-End Workflow
+
+1. Install dependencies.
+2. Make sure the few-shot datasets and full reference datasets are present under `datasets/`.
+3. Run training:
+
+```bash
+bash train_all_datasets.sh
+```
+
+4. Run evaluation:
+
+```bash
+python evaluate.py
+```
+
+5. Generate plots:
+
+```bash
+python visualize.py
+```
+
+At that point, your final metrics and figures will be under `results/`.
+
+## Common Issues
+
+### `peft` does not support DoRA
+
+If `train.py` raises an error about `use_dora=True`, upgrade `peft`:
+
+```bash
+pip install -U peft
+```
+
+### CUDA requested but not available
+
+Inference will fall back to CPU if CUDA is unavailable. Training on CPU is technically possible but usually impractical for Stable Diffusion.
+
+### Prior prompt file not found
+
+`train.py` falls back to internal prompts if the prompt file is missing. For reproducible `lora_prior` runs, use `datasets/prior_prompts.txt` explicitly.
+
+### Output directory is overwritten
+
+`train_all_datasets.sh` deletes each target output directory before training. Do not point it at an output folder you need to keep.
+
+## Notes on Reports
+
+The repository also contains:
+
+- `mid_term_report.tex`
+- `Final_Report.tex`
+
+These are project writeups and are not required to run the code.

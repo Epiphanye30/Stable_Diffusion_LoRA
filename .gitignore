@@ -1,25 +1,73 @@
+# Python
 __pycache__/
-*.vscode
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.env/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model artifacts
 *.pt
 *.pth
 *.ckpt
+*.bin
 *.safetensors
-.env
-venv/
-.env/
-.ipynb_checkpoints/
-lora_out/
-Anime Faces
-deprecated
-wikiart
-dataset.zip
+
+# Experiment outputs
+output/
+results/
+results_old/
 infer_out/
 infer_base_out/
-datasets/Anime_Faces
-datasets/flower_data
-datasets/flower_birdofparadise
-datasets/stanford_car
-output
-results_old
-results
+lora_out/
+
+# Local datasets / archives not needed in git
+dataset.zip
+Anime Faces/
+wikiart/
+datasets/Anime_Faces/
+datasets/flower_data/
+datasets/flower_birdofparadise/
+datasets/stanford_car/
+
+# Deprecated scratch area
+deprecated/
+
+# Logs
+*.log
+
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.synctex.gz
+*.bbl
+*.blg
+
+# Generated PDFs
+*.pdf
+
+# Project reports
+Final_Report.tex
+Final_Report.pdf
+Final_Report.aux
+Final_Report.log
+Final_Report.out
+mid_term_report.tex
