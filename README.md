@@ -137,6 +137,22 @@ For evaluation, the repo also expects full-domain reference folders:
 
 These are used by `evaluate.py` when computing CLIP similarity and FID.
 
+To fully reproduce the project results, you need to download the full reference datasets yourself and place them under `datasets/` with the folder names above. The few-shot subsets included in this repo are enough for training demos, but not enough for the full evaluation pipeline.
+
+Recommended sources:
+
+- Anime Faces: `https://www.kaggle.com/datasets/soumikrakshit/anime-faces`
+- Stanford Cars: `https://www.kaggle.com/datasets/eduardo4jesus/stanford-cars-dataset`
+- Flower dataset: `https://www.kaggle.com/datasets/nunenuh/pytorch-challange-flower-dataset`
+
+After download, organize them so that the repository can find:
+
+- `datasets/Anime_Faces/`
+- `datasets/stanford_car/`
+- `datasets/flower_birdofparadise/`
+
+Without these full datasets, `evaluate.py` cannot run the complete CLIP-similarity and FID evaluation used in the report.
+
 ## Prior Prompts for `lora_prior`
 
 `lora_prior` uses a plain text file with one generic prompt per line:
