@@ -382,34 +382,3 @@ python visualize.py
 ```
 
 At that point, your final metrics and figures will be under `results/`.
-
-## Common Issues
-
-### `peft` does not support DoRA
-
-If `train.py` raises an error about `use_dora=True`, upgrade `peft`:
-
-```bash
-pip install -U peft
-```
-
-### CUDA requested but not available
-
-Inference will fall back to CPU if CUDA is unavailable. Training on CPU is technically possible but usually impractical for Stable Diffusion.
-
-### Prior prompt file not found
-
-`train.py` falls back to internal prompts if the prompt file is missing. For reproducible `lora_prior` runs, use `datasets/prior_prompts.txt` explicitly.
-
-### Output directory is overwritten
-
-`train_all_datasets.sh` deletes each target output directory before training. Do not point it at an output folder you need to keep.
-
-## Notes on Reports
-
-The repository also contains:
-
-- `mid_term_report.tex`
-- `Final_Report.tex`
-
-These are project writeups and are not required to run the code.
